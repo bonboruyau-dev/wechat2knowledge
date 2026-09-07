@@ -1,132 +1,175 @@
-# 公众号文章转知识库 · wechat2knowledge
+# 把公众号文章，变成你自己的知识库
 
-> 一条链路，两档输出：把微信公众号文章（或任意 HTML）清洗成干净 GFM Markdown，再一键落地飞书云文档。大标题层级还原、表格合并单元格展开、代码块逐行、图片自动上传——脏 HTML 进，干净知识库出。
->
-> One pipeline, two targets: turn WeChat Official Account articles into clean Markdown, then publish to Feishu (Lark) cloud docs. Dirty HTML in, clean knowledge out.
-
-[English version](#english)
+> 一条命令，把微信公众号文章整理成干净的 Markdown 笔记，或直接存成一篇飞书文档。
+> 标题、表格、代码、图片，原样保留 —— 你只管读，整理的事交给它。
 
 ---
 
-## ✨ 功能特性 / Features
+## 一、这些麻烦，你是不是也遇到过？
 
-- 📄 **自动提取** 标题、作者、来源链接（多级 fallback，新样式文章也能识别）
-- 🅷 **大标题层级还原**：识别「一、背景」「01引言」「1.引言」「结语」等样式伪装标题，提升为 `##`；正文编号（`1、xxx`）不误判
-- 📊 **表格 → GFM**：合并单元格自动展开（AI/RAG 友好），单元格内多行结构以 `<br>` 分行
-- 💻 **代码块逐行还原**：微信 `<code>` 分行结构正确转换，缩进 NBSP 还原为普通空格
-- 🖼️ **图片处理**：本地下载（magic bytes 修正真实扩展名）、SVG 用 Chromium 渲染成 PNG、批量上传限流自动绕过
-- 📝 **两条输出路径**：Markdown（含 Obsidian 双链模式）/ 飞书云文档
-- ✅ **完整性回查**：原文 vs 产物逐行比对，防整段丢失；发现问题**定点修复**，绝不重建
-- 🧩 **列表容错**：嵌套列表、`li` 与子列表同层混排等公众号特殊结构均正确输出
+- **存了等于没存**：看到好文章，收藏夹一丢、链接一复制，过两周再找，要么忘了放哪，要么链接失效。
+- **复制粘贴，排版全崩**：把正文拷进笔记软件，小标题变普通文字、表格塌成一坨、代码全挤在一行 —— 勉强能看，但完全没法用。
+- **图片是灾难**：手动一张张另存，十几张图点到手酸；有的图存下来打不开，有的在笔记里根本不显示。
+- **想长期用，还得再整理半小时**：进 Obsidian 要做双链、进飞书要重新排版、想喂给 AI 做资料库，还得再洗一遍数据。
+- **在微信里读完了，然后呢？**：手机里读得再顺，关掉就什么都没留下。读完的收获，应该留下来才对。
 
-## 🚀 快速开始 / Quick Start
+如果你点头了，那它就是为你准备的。
 
-### Path A · 转 Markdown
+---
+
+## 二、它是怎么解决的？
+
+**给它一个链接，还你一份能直接用的文档。** 整个过程全自动，你只需要等几秒。
+
+### 核心能力（每一条都对应上面一个麻烦）
+
+| 你的麻烦 | 它怎么做 | 你得到什么 |
+|---|---|---|
+| 排版崩了 | 自动识别文章结构，把「一、背景」这类大标题还原成真正的标题层级 | 一份有目录、有层级、能直接生成大纲的笔记 |
+| 表格塌了 | 表格转成标准 Markdown 表格，连 Excel 里那种跨行列的合并单元格也会自动展开 | 表格完整可读，复制进任何软件都不乱 |
+| 代码挤成一行 | 按行还原代码，缩进也一并修好 | 代码可以直接复制运行 |
+| 图片太麻烦 | 自动下载全部图片，自动修正格式错误（比如伪装成图片的矢量图、动图） | 图片一张不丢，本地永久保存 |
+| 存哪都要重排 | 一次转换，两个去处：本地 Markdown 笔记，或直接生成飞书文档 | 想放哪放哪，不用重复劳动 |
+
+### 为什么值得用
+
+- **不是复制，是重建**：它不是把网页原样搬过来，而是把文章重新整理成结构清晰的文档 —— 这是"能用"和"只是存了"的区别。
+- **图片全自动**：下载、修格式、上传全包，你全程不用手动点一张图。
+- **两种归宿，随你选**：想安静躺在本地笔记里？选 Markdown（还能直接适配 Obsidian 双链）。想进团队知识库？选飞书文档。
+- **交付前会自检**：生成飞书文档后，它会自动拿原文逐行比对，确认没有漏掉任何一段 —— 交到你手上的就是完整版。
+- **三种 AI 助手都能用**：WorkBuddy、Claude Code、Codex 都支持，装一次到处可用。
+
+---
+
+## 三、怎么用？（跟着做就行）
+
+### 最简前置条件
+
+只要两点：
+
+1. **电脑上有 Python**（3.10 或更高版本）。不确定有没有？打开终端输入 `python --version`，能看到版本号就说明有。
+2. **装两个小工具**（只需执行一次）：
 
 ```bash
 pip install -r requirements.txt
-
-# 抓取文章 → 当前目录（图片下载到 images/）
-python scripts/wechat_article_to_md.py "https://mp.weixin.qq.com/s/xxxxxx"
-
-# Obsidian 模式（图片引用转 ![[...]]，落到 attachments/img/）
-python scripts/wechat_article_to_md.py "https://mp.weixin.qq.com/s/xxxxxx" ./vault -obsidian
 ```
 
-### Path B · 落飞书云文档（4 步）
+> 想生成飞书文档？在 WorkBuddy 里使用即可（飞书连接已内置）。在其他 AI 助手里使用，需要额外安装飞书命令行工具 `@larksuite/cli` 并配置好账号，具体见 [SKILL.md](./SKILL.md)。
+
+### 三步上手（本地 Markdown）
+
+**第 1 步：拿到文章链接**
+
+在微信里打开文章 → 右上角「…」→「复制链接」，得到一个以 `https://mp.weixin.qq.com/s` 开头的网址。
+
+**第 2 步：把项目放到本地**
 
 ```bash
-BUILD=./_build && mkdir -p "$BUILD"
+git clone https://github.com/bonboruyau-dev/wechat2knowledge.git
+cd wechat2knowledge
+pip install -r requirements.txt
+```
 
-# 1. HTML/URL → Markdown（ASCII 图片命名）
-python scripts/html_to_md.py "https://mp.weixin.qq.com/s/xxxxxx" "$BUILD"
+**第 3 步：跑一条命令（最小可运行示例）**
 
-# 2. 图片格式归一化（SVG→PNG，必做否则整篇失败）
-python scripts/normalize_images.py "$BUILD"
-node scripts/svg2png.js "$BUILD/images"
-python scripts/normalize_images.py "$BUILD"   # 退出码 0 才继续
+```bash
+python scripts/wechat_article_to_md.py "https://mp.weixin.qq.com/s/你复制的链接"
+```
 
-# 3. 创建飞书文档（在 _build 目录内执行）
-cd "$BUILD" && node <lark-cli>/run.js docs +create \
+就这一行。回车后你会看到它自动下载图片、整理正文，几秒后提示「保存成功」。
+
+### 你会得到什么
+
+当前目录下多出两个东西：
+
+```
+AI Agent 应用精细化评测.md     ← 整理好的文章
+images/                        ← 全部图片
+```
+
+打开那个 `.md` 文件（任何笔记软件或编辑器都能打开），长这样：
+
+```markdown
+# AI Agent 应用精细化评测：评测体系设计与工程实践
+
+**作者**: 砚东
+**来源**: https://mp.weixin.qq.com/s/5Tvv8g20CybjbT0a7iUfHw
+
+---
+
+### 1.1 从"能用"到"好用"的距离
+
+近年来，大模型驱动的 AI Agent 在各行各业加速落地……
+
+| 评测维度 | 指标数 |
+| --- | --- |
+| 端到端评测 | 11 项 |
+| 核心模块评测 | 24 项 |
+```
+
+标题是标题、表格是表格、图片各就各位 —— 直接可以用。
+
+### 想直接存成飞书文档？（4 步）
+
+```bash
+# 1. 转成带图片的 Markdown（图片名会自动规范成 img_001.png 这种）
+python scripts/html_to_md.py "https://mp.weixin.qq.com/s/你复制的链接" ./_build
+
+# 2. 图片格式自检（把矢量图、动图统一转成飞书认识的格式）
+python scripts/normalize_images.py ./_build
+
+# 3. 生成飞书文档（在 _build 目录里执行）
+cd _build && node <lark-cli>/run.js docs +create \
   --doc-format markdown --content "@./doc.md" \
-  --title "<标题>" --parent-position my_library
+  --title "文章标题" --parent-position my_library
 
-# 4. 完整性回查
+# 4. 自动比对原文，确认内容一字不差
 python scripts/verify_doc.py source.html _verify.json
 ```
 
-> 完整工作流（含 >20 张图的占位符方案、定点修复、围栏错位校验）见 [SKILL.md](./SKILL.md)。
+完成后会返回一个飞书文档链接，点开就是一篇排版完整、图片齐全的文档。
 
-## 🧩 跨平台安装 / Multi-Platform Setup
+> 完整流程、可选参数与进阶玩法，见 [SKILL.md](./SKILL.md)。
 
-标准 **Agent Skill**（`SKILL.md` + 纯 Python 脚本），三端通用：
+### 装到哪些 AI 助手里？
 
-| 平台 | 安装方式 | 依赖 |
-|---|---|---|
-| **WorkBuddy** | 从 SkillHub 一键导入，或放入 `~/.workbuddy/skills/` | 已内置隔离 venv 与飞书连接器 |
-| **Claude Code** | 放入 `~/.claude/skills/`（全局）或项目 `.claude/skills/` | `pip install -r requirements.txt`；Path B 需自装 `@larksuite/cli` + 飞书应用凭证 |
-| **Codex** | 放入 `~/.codex/skills/` | 同上 |
+| 你用的助手 | 怎么装 |
+|---|---|
+| **WorkBuddy** | 从 SkillHub 一键导入，或放到 `~/.workbuddy/skills/` |
+| **Claude Code** | 放到 `~/.claude/skills/`（全局）或项目里的 `.claude/skills/` |
+| **Codex** | 放到 `~/.codex/skills/`（全局）或项目里的 `.codex/skills/` |
 
-## 📂 目录结构 / Structure
+装好后，直接跟 AI 助手说「把这篇文章转成 Markdown」就行，不用记命令。
+
+---
+
+## 目录结构
 
 ```
 wechat2knowledge/
-├── SKILL.md                      # 完整工作流（两条路径 + 踩坑手册）
-├── README.md
-├── requirements.txt              # requests + beautifulsoup4
+├── SKILL.md                      # 完整工作流与进阶用法
+├── README.md                     # 本文件
+├── requirements.txt              # 依赖（requests + beautifulsoup4）
 ├── LICENSE                       # MIT
 └── scripts/
-    ├── wechat_article_to_md.py   # Path A：公众号 URL → Markdown
-    ├── html_to_md.py             # Path B：HTML/URL → GFM Markdown（飞书流水线入口）
-    ├── normalize_images.py       # magic bytes 纠错 + 列出待转 SVG
-    ├── svg2png.js                # SVG → PNG（Playwright/Chromium）
-    └── verify_doc.py             # 原文 vs 文档完整性比对
+    ├── wechat_article_to_md.py   # 文章链接 → Markdown
+    ├── html_to_md.py             # 网页/HTML → Markdown（飞书流程入口）
+    ├── normalize_images.py       # 图片格式自检与修正
+    ├── svg2png.js                # 矢量图 → 普通图片
+    └── verify_doc.py             # 原文与成品的完整性比对
 ```
 
-## ⚠️ 注意事项 / Notes
+## 参与共建
 
-- **长链风控**：带 `poc_token` 的长链易被验证页拦截（标题 untitled、无正文），换 UA/浏览器均无效——**改用 `/s/xxxxxx` 短链**。
-- **图片目录会被清空**：Path A 运行时会清空目标 `images/` 旧图片，别把输出目录指向自己的存图处。
-- **图片必须 ASCII 命名**：脚本默认 `img_NNN.{ext}`，中文/含空格路径会导致飞书上传静默失败。
-- **飞书文档删不掉**：lark-cli 无 delete 命令，发布前先回查；发现内容问题走定点修复，不要重建。
-- **代码围栏错位**：原文残留孤立 ``` 会吞大段内容，转换后建议校验配对（详见 SKILL.md）。
+欢迎提 Issue 和 Pull Request。提交前请：
 
-## 🔗 上下游 / Related
+1. 用一篇真实公众号文章完整跑一遍
+2. 能力有变化时同步更新 `SKILL.md`
 
-- **批量获取历史文章**：[wechat-article-exporter](https://github.com/wechat-article/wechat-article-exporter) —— 批量下载到的 HTML 可直接喂给本工具清洗入库（它是「获取」，我们是「沉淀」，上下游互补）。
-- 本工具前身：`wechat-article-to-md`（抓取转 MD）+ `html-to-feishu-doc`（飞书落地），已合并至此。
-
-## 🤝 贡献 / Contributing
-
-欢迎提交 Issue 与 Pull Request。PR 请保证：
-
-1. `python -m py_compile scripts/*.py` 与 `node --check scripts/svg2png.js` 通过
-2. 新增能力同步更新 `SKILL.md` 对应章节
-3. 用至少一篇真实公众号文章端到端验证
-
-## 📄 许可证 / License
+## 许可证
 
 [MIT](./LICENSE)
 
 ---
 
-## English
-
-One pipeline, two targets for turning WeChat Official Account articles into knowledge assets.
-
-**Highlights**
-
-- Clean GFM Markdown: fake-heading restoration, merged-cell table expansion, per-line code blocks, NBSP normalization
-- Feishu (Lark) cloud docs: auto image upload & format normalization, integrity check, surgical fix (never recreate)
-- Handles WeChat quirks: nested lists, styled section headings, lazy-loaded images, `<code>`-per-line snippets
-- Agent Skill format (SKILL.md) — works with WorkBuddy / Claude Code / Codex
-
-**Usage**
-
-```bash
-pip install -r requirements.txt
-python scripts/wechat_article_to_md.py "<article_url>" [output_dir] [-obsidian]
-# Feishu pipeline: see SKILL.md (Path B)
-```
-
-**Keywords**: wechat, weixin, official-account, markdown, converter, html-to-markdown, feishu, lark, knowledge-base, rag, obsidian, scraper, agent-skills, workbuddy, claude-code, codex
+**English**: Turn any WeChat Official Account article into a clean Markdown note or a Feishu (Lark) cloud document — with headings, tables, code blocks and images fully preserved. One command, zero manual cleanup. **Keywords**: wechat, weixin, official-account, markdown, converter, feishu, lark, knowledge-base, rag, obsidian, agent-skills, claude-code, codex
